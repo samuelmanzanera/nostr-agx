@@ -1,9 +1,10 @@
 import type { AgxLogger } from "@nostr-agx/core";
 import { NostrTransport } from "@nostr-agx/nostr";
-import WebSocket from "ws";
+import WebSocket, { type ClientOptions } from "ws";
 import type { Profile } from "./config.js";
 import { configError } from "./errors.js";
 import type { Identity } from "./identity.js";
+import { tailscaleRelayProxyForProfile } from "./tailscale/index.js";
 
 /** How long a relay may take to accept the WebSocket upgrade. */
 export const HANDSHAKE_TIMEOUT_MS = 7_000;
@@ -27,7 +28,7 @@ export function withHandshakeTimeout(timeoutMs: number) {
 		constructor(
 			address: string | URL,
 			protocols?: string | string[],
-			options?: WebSocket.ClientOptions,
+			options?: ClientOptions,
 		) {
 			super(address, protocols, { ...options, handshakeTimeout: timeoutMs });
 		}
@@ -44,10 +45,19 @@ export function withHandshakeTimeout(timeoutMs: number) {
  * — only peer-advertised relays (from a NIP-65 list) and NIP-05 lookups are. So
  * a plain `ws://127.0.0.1:7447` works locally with no scheme gymnastics.
  */
+export interface TransportOptions {
+	/** Needed only to read this profile's private Tailscale secrets. */
+	profileName?: string;
+	/** Per-run Tailscale opt-in/out flags (`--tailscale`, `--without-tailscale`). */
+	tailscale?: boolean;
+	withoutTailscale?: boolean;
+}
+
 export function createTransport(
 	profile: Profile,
 	identity: Identity,
 	logger?: AgxLogger,
+	options: TransportOptions = {},
 ): Promise<NostrTransport> {
 	if (profile.relays.length === 0) {
 		throw configError(
@@ -55,11 +65,19 @@ export function createTransport(
 			"agx config set relays ws://127.0.0.1:7447\n  and run a local relay with:\n    agx relay",
 		);
 	}
+	// A lazy proxy means the bundled tsnet node starts only when the transport
+	// is created, and NostrTransport owns its stop() on shutdown.
+	const relayProxy = tailscaleRelayProxyForProfile(
+		options.profileName ?? "default",
+		profile,
+		options,
+	);
 	return NostrTransport.create({
 		signer: identity.signer,
 		relays: profile.relays,
 		ws: withHandshakeTimeout(HANDSHAKE_TIMEOUT_MS),
 		logger,
+		relayProxy,
 	});
 }
 
