@@ -724,14 +724,6 @@ export function buildProgram(): Command {
 			"port for the wss:// listener (default: port + 1)",
 		)
 		.option("--regenerate-cert", "replace the stored certificate")
-		.option(
-			"--tailscale",
-			"start a bundled Tailscale SOCKS5 proxy for this relay (opt-in)",
-		)
-		.option(
-			"--without-tailscale",
-			"ignore the profile's Tailscale opt-in for this run",
-		)
 		.option("-v, --verbose", "log every event and request")
 		.action((options) => relayCommand(withGlobals(options)));
 
