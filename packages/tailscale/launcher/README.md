@@ -11,7 +11,8 @@ pnpm build:launcher
 ```
 
 `make -C launcher build-all` cross-compiles to `launcher/dist/<platform>/`, then
-`scripts/stage-binaries.mjs` copies those files into `../bin/`. Commit the staged binaries — they
-are what the published npm package ships.
+`scripts/stage-binaries.mjs` copies those files into `../bin/`. Those binaries are generated and
+are not checked in; stage them locally when testing, and let the release workflow stage them for
+packaging.
 
 Run the Go tests with `make -C launcher test`.

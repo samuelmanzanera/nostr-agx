@@ -25,9 +25,11 @@ built from.
    node scripts/publish-packages.mjs v<version> --dry-run
    ```
 
-   The Tailscale package ships prebuilt launcher binaries in `packages/tailscale/bin/`. If the Go
-   source in `packages/tailscale/launcher/` changed, refresh them with
-   `pnpm --filter @nostr-agx/tailscale build:launcher` (Go 1.27+) and commit the result.
+   The Tailscale package ships prebuilt launcher binaries in `packages/tailscale/bin/`. That
+   directory is generated and is not checked in; if the Go source in
+   `packages/tailscale/launcher/` changed, refresh it with
+   `pnpm --filter @nostr-agx/tailscale build:launcher` (Go 1.27+) and let the release workflow stage
+   the binaries for packaging. Do not commit generated launcher binaries.
 
 3. Merge to `main`, then tag that commit and push the tag:
 
