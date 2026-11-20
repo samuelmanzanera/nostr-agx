@@ -16,7 +16,7 @@ function env(name: string): string | undefined {
 }
 
 async function main(): Promise<void> {
-	const tokenUrl = env("DUMMY_OAUTH_URL") ?? "http://127.0.0.1:8787/oauth/token";
+	const tokenUrl = env("DUMMY_OAUTH_URL") ?? "http://127.0.0.1:8788/oauth/token";
 	const clientId = env("DUMMY_OAUTH_CLIENT_ID");
 	const clientSecret = env("DUMMY_OAUTH_CLIENT_SECRET");
 	if (!clientId || !clientSecret) {

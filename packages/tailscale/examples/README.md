@@ -97,7 +97,7 @@ Environment for the server:
 | `TAILSCALE_API_ACCESS_TOKEN` | Required. Real API token with `auth_keys` scope; stays in this process. |
 | `TAILSCALE_API_BASE_URL` | API base (default `https://api.tailscale.com/api/v2`). |
 | `DUMMY_OAUTH_CLIENT_ID`, `DUMMY_OAUTH_CLIENT_SECRET` | Client credentials. Generated and printed once if unset. |
-| `DUMMY_OAUTH_PORT` | Listen port (default `8787`, loopback only). |
+| `DUMMY_OAUTH_PORT` | Listen port (default `8788`, loopback only; chosen to avoid the CLI gateway's default). |
 | `DUMMY_OAUTH_TAGS` | Comma-separated ACL tags the server puts on the minted key (default `tag:agx-agent`). Client-supplied tags are ignored. |
 | `DUMMY_OAUTH_TAILNET` | Tailnet for the key, or `-` (default). |
 | `DUMMY_OAUTH_EXPIRY_SECONDS` | Key lifetime (default `3600`). |
@@ -118,7 +118,7 @@ printf %s "$DUMMY_OAUTH_CLIENT_SECRET" | \
   pnpm --filter @nostr-agx/tailscale example:two-agents-oauth -- \
     --client-id "$DUMMY_OAUTH_CLIENT_ID" \
     --client-secret-stdin \
-    --token-url http://127.0.0.1:8787/oauth/token \
+    --token-url http://127.0.0.1:8788/oauth/token \
     --relay wss://relay.my-tailnet.ts.net
 ```
 

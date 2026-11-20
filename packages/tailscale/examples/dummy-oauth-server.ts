@@ -81,7 +81,7 @@ function loadConfig(): Config {
 	}
 
 	return {
-		port: positiveInt(env("DUMMY_OAUTH_PORT"), 8787),
+		port: positiveInt(env("DUMMY_OAUTH_PORT"), 8788),
 		apiBaseUrl,
 		accessToken,
 		clientId,
