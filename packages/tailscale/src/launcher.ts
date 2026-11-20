@@ -136,6 +136,11 @@ export async function startBundledTailscale(
 
 	// Keep draining stdout so the child cannot block on a full pipe.
 	stdout.on("data", () => {});
+	// From here on the caller has the address it was waiting for. The child
+	// watches stdin for EOF and exits with its parent; it must not keep a
+	// short-lived CLI process alive if a caller forgets to stop the proxy.
+	// Callers that own the handle still stop it, which closes stdin first.
+	child.unref();
 
 	const parsed = new URL(url);
 	const port = Number(parsed.port);
@@ -224,18 +229,31 @@ async function stopChild(
 	exited: Promise<void>,
 ): Promise<void> {
 	if (child.exitCode !== null || child.signalCode !== null) return;
+	// The launcher is unref'd so a caller that forgets to stop it cannot keep a
+	// one-shot CLI alive. Once stop IS requested, keep the event loop alive
+	// until its `exit` event arrives; otherwise a process with nothing else to
+	// do can exit while this promise is still pending, skipping the caller's
+	// cleanup (for example removing the run's Tailscale state dir).
+	child.ref();
 	try {
-		stdin.end();
-	} catch {
-		// The child already closed its stdin.
+		try {
+			stdin.end();
+		} catch {
+			// The child already closed its stdin.
+		}
+		const term = setTimeout(() => child.kill("SIGTERM"), 1_000);
+		const force = setTimeout(() => child.kill("SIGKILL"), 5_000);
+		term.unref();
+		force.unref();
+		try {
+			await exited;
+		} finally {
+			clearTimeout(term);
+			clearTimeout(force);
+		}
+	} finally {
+		child.unref();
 	}
-	const term = setTimeout(() => child.kill("SIGTERM"), 1_000);
-	const force = setTimeout(() => child.kill("SIGKILL"), 5_000);
-	term.unref();
-	force.unref();
-	await exited;
-	clearTimeout(term);
-	clearTimeout(force);
 }
 
 /** Resolve the bundled native binary for this platform. */
