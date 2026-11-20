@@ -135,6 +135,8 @@ Tailscale is opt-in and does not change the protocol: it only supplies the netwo
 
 Both keep auth material out of argv and can use short-lived, tagged keys minted from an OAuth provisioning secret.
 
+Routing is all-or-nothing: relays in that profile, including peer-advertised NIP-65 relays, are dialed through tsnet. Public relays/peers belong in a profile without Tailscale unless you intentionally route public traffic through an exit node.
+
 ## Connect your own runtime
 
 Register a capability handler with `AgxClient`, or give the CLI a JavaScript module with `serve --handler`. Your handler performs the work and returns a result; AGX handles the exchange around it.

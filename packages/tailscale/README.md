@@ -173,6 +173,13 @@ A borrowed URL can be reused after `transport.stop()`; an owned handle cannot.
 
 ## Constraints
 
+**Routing scope.** The proxy is all-or-nothing for a transport: every relay
+WebSocket it owns (operator relays and peer-advertised NIP-65 relays) is dialed
+through tsnet. Public relays are outside the tailnet, so unless you configure
+the tsnet node's exit node, they will not be reachable over that path. Use this
+integration for a tailnet-only transport, or split public and tailnet relays
+across separate transports/profiles.
+
 Proxy routing needs an explicit WebSocket implementation (`ws` in Node), because the global WHATWG
 WebSocket has no socket/agent options. Operator-configured relay hostnames are resolved by the proxy
 (`socks5h` semantics), so tailnet MagicDNS names work even when the host cannot resolve them.

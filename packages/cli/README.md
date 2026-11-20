@@ -247,6 +247,12 @@ and the key reaches the launcher through its environment, never argv.
 Each run uses a fresh ephemeral tsnet state dir so a one-off key's tags are
 applied. Use `--state-dir <path>` to keep state across runs.
 
+Routing is all-or-nothing for the profile's transport: with Tailscale enabled,
+its relays and peer-advertised NIP-65 relays are dialed through tsnet. Public
+relays/peers are not guaranteed to be reachable that way, so keep them in a
+profile without Tailscale unless you intentionally route public traffic through
+an exit node. See [docs/tailscale.md](../../docs/tailscale.md).
+
 See [docs/tailscale.md](../../docs/tailscale.md) for prerequisites, ACL example,
 the full command reference, and troubleshooting. For applications that create
 their own `NostrTransport` instead of using the CLI,

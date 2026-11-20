@@ -81,6 +81,20 @@ tailnet address (DNS rebinding). The loopback proxy also requires random
 per-run SOCKS5 credentials, so an unrelated local process cannot borrow the
 node's tailnet identity.
 
+### Routing scope
+
+Tailscale routing is **all-or-nothing** for a transport: `NostrTransport` sends
+every relay WebSocket—operator relays and peer-advertised NIP-65 relays—through
+the tsnet proxy. Public relays are outside the tailnet, so unless the tsnet
+node has an exit node, they will not be reachable over that path. AGX does not
+enable or select an exit node.
+
+Use Tailscale on a profile whose relays are the private tailnet relay(s), and
+use a separate profile without Tailscale for public relays or public peers. If
+your peers advertise public NIP-65 relays, prefer direct routing for those
+runs; if you intentionally need public traffic through the tailnet, configure
+the tsnet exit node yourself.
+
 ## Quick start (auth key)
 
 Keep the key out of shell history and `ps` by piping it on stdin:
