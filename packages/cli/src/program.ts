@@ -762,7 +762,7 @@ export function buildProgram(): Command {
 		.option("--oauth-api-base-url <url>", "Tailscale API base for minting a key")
 		.option("--tag <tag...>", "tag for a minted key (repeatable, default tag:agx-agent)")
 		.option("--hostname <name>", "hostname to request from Tailscale")
-		.option("--state-dir <path>", "persistent tsnet state dir (default: fresh per run)")
+		.option("--state-dir <path>", "persistent tsnet state dir (default: fresh dir under AGX_HOME per run)")
 		.option("--no-up", "store the configuration without starting a proxy")
 		.option("-v, --verbose", "log transport activity")
 		.action((options) => tailscaleEnableCommand(withGlobals(options)));
@@ -772,7 +772,7 @@ export function buildProgram(): Command {
 		.option("--auth-key <key>", "one-off Tailscale auth key (not stored)")
 		.option("--auth-key-stdin", "read a one-off Tailscale auth key from stdin")
 		.option("--hostname <name>", "hostname to request from Tailscale")
-		.option("--state-dir <path>", "persistent tsnet state dir (default: fresh per run)")
+		.option("--state-dir <path>", "persistent tsnet state dir (default: fresh dir under AGX_HOME per run)")
 		.option("-v, --verbose", "log transport activity")
 		.action((options) => tailscaleUpCommand(withGlobals(options)));
 	tailscale

@@ -159,8 +159,9 @@ name. A broad `src: ["*"], dst: ["*"]` grant also works, but gives every tailnet
 
 `tsnet` ignores an auth key when its state directory already contains an
 enrolled node, so an old identity (and old tags) can persist. AGX therefore uses
-a fresh ephemeral node per run by default. Pass `--state-dir <path>` (or set
-`AGX_TAILSCALE_STATE_DIR`) only when you intentionally want to reuse state.
+a fresh ephemeral node per run by default, with its state in a private directory
+under `AGX_HOME` that is removed when the node stops. Pass `--state-dir <path>`
+(or set `AGX_TAILSCALE_STATE_DIR`) only when you intentionally want to reuse state.
 
 ## Commands
 
@@ -174,7 +175,7 @@ a fresh ephemeral node per run by default. Pass `--state-dir <path>` (or set
 Useful options:
 
 - `--hostname <name>`: node name (default `agx-<profile>`).
-- `--state-dir <path>`: persistent tsnet state dir (default: fresh per run).
+- `--state-dir <path>`: persistent tsnet state dir (default: fresh dir under `AGX_HOME` per run).
 - `--auth-key-stdin` / `--oauth-client-secret-stdin`: keep credentials out of
   argv and shell history.
 - `agx tailscale disable --forget`: delete this profile's stored secrets.

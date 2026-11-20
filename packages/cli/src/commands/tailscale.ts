@@ -102,7 +102,7 @@ function oauthRouteRequested(options: TailscaleEnableOptions): boolean {
 }
 
 function stateDirDescription(status: TailscaleStatusInfo): string {
-	return status.stateDir ?? "fresh temporary dir per run";
+	return status.stateDir ?? "fresh per run (under AGX_HOME)";
 }
 
 export async function tailscaleEnableCommand(

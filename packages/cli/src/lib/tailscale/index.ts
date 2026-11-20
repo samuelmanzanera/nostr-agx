@@ -1,3 +1,5 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import type { RelayProxyHandle, RelayProxyInput } from "@nostr-agx/nostr";
 import {
 	customAuthKey,
@@ -11,6 +13,7 @@ import {
 } from "@nostr-agx/tailscale";
 import type { Profile } from "../config.js";
 import { configError } from "../errors.js";
+import { agxHome, ensureDir } from "../paths.js";
 import { runtime } from "../runtime.js";
 import { rememberSecret } from "../secrets.js";
 import { asCliError, type TailscaleOAuthOptions } from "./auth.js";
@@ -69,6 +72,27 @@ export function defaultTailscaleHostname(profileName: string): string {
 		.replace(/^-+|-+$/g, "")
 		.slice(0, 40);
 	return `agx-${safe || "agent"}`;
+}
+
+/**
+ * A private state dir for one node, under AGX_HOME rather than the real home
+ * (so `AGX_HOME` sandboxes and profiles cannot share an enrolled identity).
+ * tsnet ignores an auth key once its state holds a node, which would leave old
+ * tags in place; a fresh dir per run keeps the "--state-dir default: fresh per
+ * run" promise honest.
+ */
+function createRunStateDir(): string {
+	const parent = join(agxHome(), "tailscale-runs");
+	ensureDir(parent);
+	const dir = mkdtempSync(join(parent, "node-"));
+	// mkdtemp already uses 0700 on POSIX; chmod explicitly because this dir
+	// holds the new node's private key, not just scratch state.
+	ensureDir(dir);
+	return dir;
+}
+
+function removeRunStateDir(dir: string): void {
+	rmSync(dir, { recursive: true, force: true });
 }
 
 function envValue(name: string): string | null {
@@ -133,11 +157,36 @@ export async function startTailscaleForProfile(
 	profile: Profile,
 	options: TailscaleUseOptions = {},
 ): Promise<RelayProxyHandle> {
+	const config = tailscaleConfigForProfile(profileName, profile, options);
+	// An explicit state dir is the operator asking to reuse a node. Otherwise
+	// give this run its own and delete it when the node is stopped.
+	const runStateDir = config.stateDir ? undefined : createRunStateDir();
+	if (runStateDir) {
+		config.stateDir = runStateDir;
+	}
 	try {
-		return await startTailscaleRelayProxy(
-			tailscaleConfigForProfile(profileName, profile, options),
-		);
+		const proxy = await startTailscaleRelayProxy(config);
+		if (!runStateDir) {
+			return proxy;
+		}
+		let stopping: Promise<void> | undefined;
+		return {
+			url: proxy.url,
+			stop(): Promise<void> {
+				stopping ??= (async () => {
+					try {
+						await proxy.stop();
+					} finally {
+						removeRunStateDir(runStateDir);
+					}
+				})();
+				return stopping;
+			},
+		};
 	} catch (error) {
+		if (runStateDir) {
+			removeRunStateDir(runStateDir);
+		}
 		throw asCliError(error);
 	}
 }

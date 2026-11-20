@@ -1,8 +1,11 @@
+import { existsSync, mkdirSync, statSync } from "node:fs";
+import { join, sep } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { effectiveProfile } from "../config.js";
 import { sandbox } from "../../test/helpers.js";
 import {
 	setTailscaleStarterForTests,
+	startTailscaleForProfile,
 	tailscaleRelayProxyForProfile,
 } from "./index.js";
 
@@ -61,5 +64,60 @@ describe("tailscaleRelayProxyForProfile", () => {
 		expect(handle.url).toBe(PROXY_URL);
 		await handle.stop();
 		expect(stopped).toBe(1);
+	});
+});
+
+describe("startTailscaleForProfile state directory", () => {
+	it("uses a private fresh dir under AGX_HOME and removes it when the node stops", async () => {
+		let seen: { stateDir?: string } | undefined;
+		restoreStarter = setTailscaleStarterForTests(async (options) => {
+			seen = options;
+			return { url: PROXY_URL, stop: async () => undefined };
+		});
+
+		const handle = await startTailscaleForProfile("default", effectiveProfile("default"));
+		const dir = seen?.stateDir;
+		expect(dir).toBeTruthy();
+		expect(dir?.startsWith(join(box.home, "tailscale-runs") + sep)).toBe(true);
+		expect(statSync(dir!).mode & 0o777).toBe(0o700);
+		expect(existsSync(dir!)).toBe(true);
+
+		await handle.stop();
+		expect(existsSync(dir!)).toBe(false);
+		await expect(handle.stop()).resolves.toBeUndefined();
+	});
+
+	it("keeps an explicitly configured state dir, including after stop", async () => {
+		const persistent = join(box.home, "keep-this-state");
+		mkdirSync(persistent, { recursive: true, mode: 0o700 });
+		let seen: { stateDir?: string } | undefined;
+		restoreStarter = setTailscaleStarterForTests(async (options) => {
+			seen = options;
+			return { url: PROXY_URL, stop: async () => undefined };
+		});
+		const base = effectiveProfile("default");
+		const profile = {
+			...base,
+			tailscale: { ...base.tailscale, stateDir: persistent },
+		};
+
+		const handle = await startTailscaleForProfile("default", profile);
+		expect(seen?.stateDir).toBe(persistent);
+		await handle.stop();
+		expect(existsSync(persistent)).toBe(true);
+	});
+
+	it("removes the fresh dir when the launcher fails to start", async () => {
+		let failedDir: string | undefined;
+		restoreStarter = setTailscaleStarterForTests(async (options) => {
+			failedDir = options.stateDir;
+			throw new Error("launcher failed");
+		});
+
+		await expect(
+			startTailscaleForProfile("default", effectiveProfile("default")),
+		).rejects.toThrow(/launcher failed/);
+		expect(failedDir).toBeTruthy();
+		expect(existsSync(failedDir!)).toBe(false);
 	});
 });
