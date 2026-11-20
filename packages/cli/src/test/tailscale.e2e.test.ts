@@ -152,7 +152,6 @@ function start(...args: string[]): { child: ChildProcess; done: Promise<Run> } {
 	env.AGX_TAILSCALE_AUTH_KEY = KEY;
 	env.AGX_TAILSCALE_BINARY = launcher;
 	env.FAKE_SOCKS_PORT = String(socks.port);
-	env.STATE_ARGS = join(home, "launcher-args");
 	const child = spawn(process.execPath, [AGX, ...args], {
 		env,
 		stdio: ["ignore", "pipe", "pipe"],
@@ -188,7 +187,7 @@ describe.skipIf(!posix)("agx send through Tailscale (built CLI)", () => {
 		// does not understand; the shell wrapper ignores them.
 		writeFileSync(
 			launcher,
-			`#!/bin/sh\nprintf '%s\\n' "$@" > "$STATE_ARGS"\necho socks5://${SOCKS_USER}:${SOCKS_PASS}@127.0.0.1:${socks.port}\nexec cat >/dev/null\n`,
+			`#!/bin/sh\nprintf '%s\\n' "$@" > ${JSON.stringify(join(home, "launcher-args"))}\necho socks5://${SOCKS_USER}:${SOCKS_PASS}@127.0.0.1:${socks.port}\nexec cat >/dev/null\n`,
 			{ mode: 0o755 },
 		);
 		chmodSync(launcher, 0o755);

@@ -108,8 +108,16 @@ export async function startBundledTailscale(
 	if (ephemeral) args.push("--ephemeral");
 	if (tags.length > 0) args.push("--tags", tags.join(","));
 
-	const env: NodeJS.ProcessEnv = { ...process.env };
-	if (authKey !== undefined) env.TS_AUTHKEY = authKey;
+	// Minimal environment: the launcher only needs HOME and the resolved auth
+	// key. Do not pass the parent's full environment through, so host secrets
+	// cannot reach the child (and the tailnet node) unintentionally.
+	const env: NodeJS.ProcessEnv = {};
+	if (process.env.HOME) {
+		env.HOME = process.env.HOME;
+	}
+	if (authKey !== undefined) {
+		env.TS_AUTHKEY = authKey;
+	}
 
 	const child = spawn(executable, args, {
 		env,
