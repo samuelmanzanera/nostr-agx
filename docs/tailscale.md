@@ -1,10 +1,12 @@
 # Tailscale transport (opt-in)
 
 AGX keeps Nostr as its transport. Tailscale is only a **network path**: the SDK
-starts a bundled tsnet node, exposes a loopback SOCKS5 proxy, and `NostrTransport`
-sends relay WebSockets through it. No `tailscale` command has to be installed,
-and no `tailscale serve` rule, tailnet URL adoption, Funnel or public listener is
-involved.
+starts a bundled tsnet node, exposes an authenticated loopback SOCKS5 proxy, and
+`NostrTransport` sends relay WebSockets through it. No `tailscale` command has
+to be installed, and no `tailscale serve` rule, tailnet URL adoption, Funnel or
+public listener is involved. The relay itself must already be reachable on the
+tailnet; `agx relay` is still a local development relay and is not published to
+the tailnet.
 
 Everything here is opt-in. A profile that never enables Tailscale behaves
 exactly as before.
@@ -21,11 +23,23 @@ this machine                                    tailnet
 
 The CLI and the SDK use the same package:
 
-- **CLI:** `agx tailscale …` stores the opt-in and credentials, then `agx serve`,
-  `agx relay` and `agx gateway` start the SDK proxy automatically.
+- **CLI:** `agx tailscale …` stores the opt-in and credentials, then `agx serve`
+  and `agx gateway` start the SDK proxy automatically. `agx relay` always serves
+  locally and does not start a Tailscale node.
 - **SDK:** [`@nostr-agx/tailscale`](../packages/tailscale/README.md) starts the
   node programmatically for an application that creates its own transport.
-  `@nostr-agx/nostr` has no Tailscale dependency.
+
+`@nostr-agx/nostr` has no Tailscale dependency. Its opt-in `relayProxy` transport
+hook is what receives the SOCKS5 URL; the hook was added for this integration,
+and `@nostr-agx/nostr` is not unchanged. Proxy routing itself uses
+`socks-proxy-agent` as an optional peer, loaded only when `relayProxy` is set.
+
+The CLI also treats `@nostr-agx/tailscale` as an optional peer. Install both
+packages together when you want Tailscale:
+
+```sh
+npm install -g @nostr-agx/cli @nostr-agx/tailscale
+```
 
 ```ts
 import { NostrTransport } from "@nostr-agx/nostr";
@@ -58,9 +72,14 @@ the secret is never handed to the agent. `startTailscaleRelayProxy()` returns a
 3. Node 20+ on this machine; the launcher binary is bundled with the package.
 
 No local `tailscale` daemon, HTTPS certificate setup, or port forwarding is
-required for the CLI path. Tailnet MagicDNS names in relay URLs are resolved at
-the proxy (`socks5h:` normalization), so `wss://relay.<tailnet>.ts.net` works as
-a configured relay URL.
+required for the CLI path. Operator-configured relay URLs are dialed with
+proxy-side DNS (`socks5h:` normalization), so `wss://relay.<tailnet>.ts.net`
+works even when the host cannot resolve it. Peer-advertised NIP-65 relays are
+different: they are vetted with local DNS and then dialed with the vetted
+addresses pinned, so a remote proxy cannot re-resolve the name to a private or
+tailnet address (DNS rebinding). The loopback proxy also requires random
+per-run SOCKS5 credentials, so an unrelated local process cannot borrow the
+node's tailnet identity.
 
 ## Quick start (auth key)
 
@@ -109,7 +128,6 @@ Environment overrides: `AGX_TAILSCALE_AUTH_KEY`, `TS_AUTHKEY`,
 Once a profile is opted in, these commands use Tailscale automatically:
 
 ```bash
-agx relay --tailscale     # start a local relay and its own SOCKS5 proxy
 agx gateway --tailscale   # route the gateway's relay WebSockets through the proxy
 agx serve --tailscale     # route this agent's relay WebSockets through the proxy
 ```
@@ -118,8 +136,10 @@ agx serve --tailscale     # route this agent's relay WebSockets through the prox
 - `--without-tailscale` ignores the profile's opt-in for one run.
 - `AGX_TAILSCALE=0` does the same for every command in the process.
 
-`agx relay` and `agx gateway` keep serving locally if Tailscale fails; they
-print a warning instead of taking the local service down.
+`agx relay` has no Tailscale flags: it is a local NIP-01 relay and does not open
+a tailnet listener. Use a relay already reachable on the tailnet as the profile's
+relay URL. `agx gateway` keeps serving locally if Tailscale fails; it prints a
+warning instead of taking the local service down.
 
 ## Tailnet ACLs for agent nodes
 
@@ -168,7 +188,7 @@ under `AGX_HOME` that is removed when the node stops. Pass `--state-dir <path>`
 | Command | What it does |
 | --- | --- |
 | `agx tailscale enable` | Store the opt-in and auth route, then verify the proxy (use `--no-up` to only store it). |
-| `agx tailscale up` | Verify the stored (or one-off) key can start the proxy; prints its SOCKS5 URL. |
+| `agx tailscale up` | Verify the stored (or one-off) key can start the proxy; prints its SOCKS5 URL with credentials redacted. |
 | `agx tailscale status` | Show opt-in, auth readiness and proxy settings; never prints a key. |
 | `agx tailscale disable` | Stop starting a proxy for this profile (`--forget` deletes stored secrets). |
 
@@ -209,6 +229,12 @@ the launcher through its environment, never argv.
 - **A peer cannot connect** — the relay URL must be reachable on the tailnet and
   allowed by its ACLs. A wrong tag on the node is usually caused by a reused
   state dir (see above).
+- **Tailscale support is not installed** — the CLI loads
+  `@nostr-agx/tailscale` only when a Tailscale-enabled command needs it. Install
+  it alongside `@nostr-agx/cli`.
+- **Relay proxy support requires socks-proxy-agent** — hosts using
+  `NostrTransport` with `relayProxy` must install the optional
+  `socks-proxy-agent` peer.
 - **No bundled launcher for this platform** — rebuild with
   `pnpm --filter @nostr-agx/tailscale build:launcher`, or set
   `AGX_TAILSCALE_BINARY` to a local build.

@@ -1,12 +1,14 @@
 # @nostr-agx/tailscale
 
-Opt-in Tailscale reachability for `@nostr-agx/nostr`. It starts a local tsnet node with a launcher
+Opt-in Tailscale routing for `@nostr-agx/nostr`. It starts a local tsnet node with a launcher
 that is **bundled in this package** (Go source in `launcher/`, prebuilt binaries in `bin/`), then
-gives `NostrTransport` the loopback SOCKS5 proxy it needs to dial a relay that is only on your
-tailnet. No separate launcher package or optional platform dependencies are required.
+gives `NostrTransport` the authenticated loopback SOCKS5 proxy it needs to dial a relay that is
+already reachable on your tailnet. No separate launcher package or optional platform dependencies
+are required.
 
 AGX stays on Nostr — Tailscale only supplies the network path. `@nostr-agx/nostr` has no Tailscale
-dependency; nothing changes for hosts that do not install this package.
+dependency; its `relayProxy` hook and the optional `socks-proxy-agent` peer are opt-in. Nothing
+changes for hosts that do not use them.
 
 This is the **SDK integration** for applications that build their own transport. The AGX CLI uses
 the same package: `agx tailscale enable` opts a profile in to the bundled SOCKS5 proxy; see
@@ -16,8 +18,12 @@ the same package: `agx tailscale enable` opts a profile in to the bundled SOCKS5
 ## Install
 
 ```sh
-npm install @nostr-agx/nostr @nostr-agx/tailscale
+npm install @nostr-agx/nostr @nostr-agx/tailscale socks-proxy-agent
 ```
+
+`@nostr-agx/tailscale` is an optional peer of `@nostr-agx/cli`: installing the CLI alone does not
+pull in the bundled binaries. Install all three packages when you want a custom SDK integration;
+for the CLI, install `@nostr-agx/cli` and `@nostr-agx/tailscale` together.
 
 The native launcher for the host platform ships inside the package under `bin/<platform>/`. Set
 `AGX_TAILSCALE_BINARY` to use your own build instead; `startBundledTailscale()` and
@@ -168,9 +174,13 @@ A borrowed URL can be reused after `transport.stop()`; an owned handle cannot.
 ## Constraints
 
 Proxy routing needs an explicit WebSocket implementation (`ws` in Node), because the global WHATWG
-WebSocket has no socket/agent options. Hostnames are resolved by the proxy (`socks5h` semantics), so
-tailnet MagicDNS names work even when the host cannot resolve them.
+WebSocket has no socket/agent options. Operator-configured relay hostnames are resolved by the proxy
+(`socks5h` semantics), so tailnet MagicDNS names work even when the host cannot resolve them.
+Peer-advertised NIP-65 relays are vetted with local DNS first and dialed with those addresses
+pinned, preventing a second proxy-side resolution from rebinding the name to a private address.
+The launcher generates random SOCKS5 username/password credentials per run and prints them only to
+the parent process in the proxy URL; do not log that URL.
 
-**One node per process.** `nostr-tools` resolves a single WebSocket implementation per process, so a
-relay proxy applies to every relay dial in that process. Use separate processes (and separate Tailscale
-state directories) for separate tailnet nodes.
+**No global WebSocket mutation.** The transport injects a WebSocket implementation per relay dial, so
+host code that dials `nostr-tools` directly is unaffected. Use separate transports (and separate
+Tailscale state directories) for separate tailnet nodes.

@@ -126,12 +126,12 @@ Stop the reviewer and relay with Ctrl-C. Profiles and keys remain in `~/.agx`; r
 
 If a request times out, check that both processes are running, both profiles use the same relay, and the reviewer has allowed the requester's public key.
 
-### Reach an agent over Tailscale
+### Reach a private relay over Tailscale
 
-The relay can stay local and still be reachable by peers on a private tailnet. Tailscale is opt-in and does not change the protocol: it only supplies the network path. There are two ways to use it:
+Tailscale is opt-in and does not change the protocol: it only supplies the network path from AGX to a relay that is already reachable on the tailnet. It does not publish the local `agx relay` to other tailnet devices. There are two ways to use it:
 
-- **CLI profiles:** `agx tailscale enable` opts the profile in to a bundled tsnet SOCKS5 proxy; `agx serve`, `agx relay` and `agx gateway` then route relay WebSockets over it. See [Tailscale transport](docs/tailscale.md) for setup, auth keys, OAuth, and the command reference.
-- **Your own SDK runtime:** install [`@nostr-agx/tailscale`](packages/tailscale) and pass `relayProxy: tailscaleRelayProxy({ authKey })` to `NostrTransport`. It starts a local tsnet node with a bundled launcher and routes relay WebSockets through its loopback SOCKS5 proxy; `@nostr-agx/nostr` itself has no Tailscale dependency. Runnable [two-agent examples](packages/tailscale/examples/README.md) cover both an `--auth-key` argument and OAuth-minted keys. See the [integration README](packages/tailscale/README.md).
+- **CLI profiles:** install `@nostr-agx/tailscale` alongside `@nostr-agx/cli`, then `agx tailscale enable` opts the profile in to a bundled tsnet SOCKS5 proxy. `agx serve` and `agx gateway` route relay WebSockets over it; `agx relay` remains local. See [Tailscale transport](docs/tailscale.md) for setup, auth keys, OAuth, and the command reference.
+- **Your own SDK runtime:** install [`@nostr-agx/tailscale`](packages/tailscale) and pass `relayProxy: tailscaleRelayProxy({ authKey })` to `NostrTransport`. It starts a local tsnet node with a bundled launcher and routes relay WebSockets through its authenticated loopback SOCKS5 proxy. `@nostr-agx/nostr` has no Tailscale dependency; its opt-in `relayProxy` hook and optional `socks-proxy-agent` peer were added for this integration. Runnable [two-agent examples](packages/tailscale/examples/README.md) cover both an `--auth-key` argument and OAuth-minted keys. See the [integration README](packages/tailscale/README.md).
 
 Both keep auth material out of argv and can use short-lived, tagged keys minted from an OAuth provisioning secret.
 

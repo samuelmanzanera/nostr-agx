@@ -208,11 +208,16 @@ silently. `--allow-all` opts out explicitly.
 
 ## Route relay WebSockets over Tailscale (opt-in)
 
-Tailscale is transport-only. The CLI starts a bundled tsnet node from
-`@nostr-agx/tailscale`, gets a loopback SOCKS5 proxy, and passes it to
-`NostrTransport` as `relayProxy`. No installed `tailscale` command,
-`tailscale serve` rule, tailnet URL adoption, Funnel or port forwarding is
-needed; Nostr remains the transport and nothing is exposed publicly.
+Tailscale is transport-only. When enabled, the CLI loads the optional
+`@nostr-agx/tailscale` package, starts a bundled tsnet node, gets an authenticated
+loopback SOCKS5 proxy, and passes it to `NostrTransport` as `relayProxy`. No
+installed `tailscale` command, `tailscale serve` rule, tailnet URL adoption,
+Funnel or port forwarding is needed; Nostr remains the transport and nothing is
+exposed publicly. Install both packages together when you want this path:
+
+```sh
+npm install -g @nostr-agx/cli @nostr-agx/tailscale
+```
 
 ```bash
 printf %s "$TS_AUTHKEY" | agx tailscale enable --auth-key-stdin
@@ -230,11 +235,12 @@ printf %s "$CLIENT_SECRET" | agx tailscale enable \
 ```
 
 `enable` briefly starts and stops the proxy to verify the credentials;
-long-running commands start and own their own proxy. `--tailscale` and
-`--without-tailscale` on `relay`, `gateway`, and `serve` override the profile's
-opt-in for one run. `agx tailscale status` shows readiness without ever printing
-a key; `agx tailscale disable --forget` turns the opt-in off and deletes the
-stored secrets. Auth material lives in
+long-running `gateway` and `serve` commands start and own their own proxy.
+`--tailscale` and `--without-tailscale` on `gateway` and `serve` override the
+profile's opt-in for one run. `agx relay` is always local and has no Tailscale
+flags. `agx tailscale status` shows readiness without ever printing a key;
+printed proxy URLs are credential-redacted. `agx tailscale disable --forget`
+turns the opt-in off and deletes the stored secrets. Auth material lives in
 `~/.agx/profiles/<name>/tailscale.json` (mode `0600`), never in `config.json`,
 and the key reaches the launcher through its environment, never argv.
 
@@ -750,7 +756,7 @@ not remove an abandoned login lock.
 | `agx ui [--port n] [--no-open] [--compose <draft.json>] [--drafts <dir>]` | a local browser UI for your conversations (see [Local UI](#local-ui)) |
 | `agx gateway` / `agx gateway key new \| list \| revoke` | the agent behind an HTTP API with signed webhooks, for n8n Cloud and other HTTP tools (see [`agx gateway`](#behind-an-http-api-agx-gateway)) |
 | `agx relay` | a local NIP-01 relay |
-| `agx tailscale enable \| up \| serve \| status \| disable` | opt-in tailnet reachability for the local relay/gateway (`--auth-key-stdin` or OAuth; see [Tailscale](#reach-the-relay-over-tailscale-opt-in)) |
+| `agx tailscale enable \| up \| status \| disable` | opt-in routing to a tailnet relay for `serve`/`gateway` (`--auth-key-stdin` or OAuth; see [Tailscale](#route-relay-websockets-over-tailscale-opt-in)) |
 | `agx doctor` | preflight |
 | `agx doctor --local` | preflight of the local exchange only: permissions, identity, relays, allowlist; skips the hosted index and login |
 
