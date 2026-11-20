@@ -25,7 +25,11 @@ export default defineConfig([
 		// into the ESM output leaves `require("events")`/`require("net")` calls
 		// that throw "Dynamic require ... is not supported" when a relay proxy
 		// is first used. Leave it as a runtime import instead.
-		external: ["socks-proxy-agent", "ws"],
+		// `@nostr-agx/tailscale` is an optional peer; it must stay a runtime
+		// dynamic import so ordinary installs do not fetch/load its ~100MB of
+		// bundled binaries. The CLI prints an actionable error only when the
+		// package is actually needed.
+		external: ["@nostr-agx/tailscale", "socks-proxy-agent", "ws"],
 		banner: {
 			js: "#!/usr/bin/env node",
 		},

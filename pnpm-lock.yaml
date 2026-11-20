@@ -74,6 +74,9 @@ importers:
       '@nostr-agx/nostr':
         specifier: workspace:*
         version: link:../nostr
+      '@nostr-agx/tailscale':
+        specifier: workspace:*
+        version: link:../tailscale
       '@types/node':
         specifier: ^26.4.0
         version: 26.4.0

@@ -10,6 +10,7 @@ import { agx, jsonDocuments, sandbox } from "../test/helpers.js";
 const KEY = "tskey-auth-k1234567890CNTRL-abcdefghijklmnop";
 const CLIENT_SECRET = "oauth-client-secret-value";
 const PROXY_URL = "socks5h://agx:secret@127.0.0.1:49152";
+const REDACTED_PROXY_URL = "socks5h://redacted@127.0.0.1:49152";
 
 interface StartedCall {
 	options: TailscaleStartOptions;
@@ -95,14 +96,15 @@ describe("agx tailscale enable", () => {
 		expect(calls[0].options.ephemeral).toBe(true);
 		expect(resolvedKey(calls[0])).toBe(KEY);
 		expect(calls[0].stopped).toBe(true);
-		expect(`${run.stdout}${run.stderr}`).toContain(PROXY_URL);
+		expect(`${run.stdout}${run.stderr}`).toContain(REDACTED_PROXY_URL);
+		expect(`${run.stdout}${run.stderr}`).not.toContain(PROXY_URL);
 		expect(`${run.stdout}${run.stderr}`).not.toContain(KEY);
 		expect(jsonDocuments(run.stdout).at(-1)).toMatchObject({
 			profile: "default",
 			enabled: true,
 			authMode: "key",
 			hostname: "agx-default",
-			relayProxy: PROXY_URL,
+			relayProxy: REDACTED_PROXY_URL,
 		});
 	});
 

@@ -1,8 +1,5 @@
-import {
-	oauthAuthKey as sdkOauthAuthKey,
-	TailscaleError,
-} from "@nostr-agx/tailscale";
 import { AgxCliError, EXIT } from "../errors.js";
+import { isTailscaleError, loadTailscaleSdk } from "./sdk.js";
 import { runtime } from "../runtime.js";
 import { rememberSecret } from "../secrets.js";
 
@@ -53,7 +50,7 @@ export interface ResolvedAuthKey {
 const ENV_AUTH_KEYS = ["AGX_TAILSCALE_AUTH_KEY", "TS_AUTHKEY"] as const;
 
 /** ACL tag applied to OAuth-minted keys when none is configured. */
-export { DEFAULT_TAILSCALE_OAUTH_TAGS } from "@nostr-agx/tailscale";
+export { DEFAULT_TAILSCALE_OAUTH_TAGS } from "./sdk.js";
 
 /** Printable, non-empty, no whitespace/control characters. Real keys are
  * `tskey-…`; this only rejects what can never be a key. */
@@ -137,7 +134,8 @@ export async function oauthAuthKey(
 
 	let key: string | undefined;
 	try {
-		key = await sdkOauthAuthKey({
+		const sdk = await loadTailscaleSdk();
+		key = await sdk.oauthAuthKey({
 			clientId: options.clientId,
 			clientSecret,
 			tokenUrl: options.tokenUrl,
@@ -168,7 +166,7 @@ export function asCliError(error: unknown): AgxCliError {
 	if (error instanceof AgxCliError) {
 		return error;
 	}
-	if (error instanceof TailscaleError) {
+	if (isTailscaleError(error)) {
 		const exitCode =
 			error.code === "configuration"
 				? EXIT.config

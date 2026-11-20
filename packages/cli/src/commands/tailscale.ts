@@ -8,6 +8,7 @@ import { configError, usageError } from "../lib/errors.js";
 import { heading, info, json, kv, notice } from "../lib/output.js";
 import { readSecretLine, stdinIsTTY } from "../lib/stdin.js";
 import {
+	displayTailscaleProxyUrl,
 	forgetTailscaleSecret,
 	saveTailscaleSecret,
 	startTailscaleForProfile,
@@ -228,16 +229,16 @@ export async function tailscaleEnableCommand(
 	// Long-running commands start their own proxy through NostrTransport.
 	const proxy = await startTailscaleForProfile(profileName, effectiveProfile(profileName));
 	try {
-		kv("relay proxy", proxy.url);
+		kv("relay proxy", displayTailscaleProxyUrl(proxy.url));
 		info(
-			"Verified and stopped the node. `agx serve`, `agx relay` and `agx gateway` start their own proxy when Tailscale is enabled.",
+			"Verified and stopped the node. `agx serve` and `agx gateway` start their own proxy when Tailscale is enabled.",
 		);
 		json({
 			profile: profileName,
 			enabled: true,
 			authMode,
 			hostname: status.hostname,
-			relayProxy: proxy.url,
+			relayProxy: displayTailscaleProxyUrl(proxy.url),
 		});
 	} finally {
 		await proxy.stop();
@@ -285,11 +286,15 @@ export async function tailscaleUpCommand(
 		kv("profile", profileName);
 		kv("hostname", status.hostname);
 		kv("state dir", stateDirDescription(status));
-		kv("relay proxy", proxy.url);
+		kv("relay proxy", displayTailscaleProxyUrl(proxy.url));
 		info(
 			"Verified and stopped the node. Long-running commands start their own proxy when Tailscale is enabled.",
 		);
-		json({ profile: profileName, hostname: status.hostname, relayProxy: proxy.url });
+		json({
+			profile: profileName,
+			hostname: status.hostname,
+			relayProxy: displayTailscaleProxyUrl(proxy.url),
+		});
 	} finally {
 		await proxy.stop();
 	}

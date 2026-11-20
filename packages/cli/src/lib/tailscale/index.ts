@@ -1,16 +1,6 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { RelayProxyHandle, RelayProxyInput } from "@nostr-agx/nostr";
-import {
-	customAuthKey,
-	environmentAuthKey,
-	firstAuthKey,
-	oauthAuthKey as sdkOauthAuthKey,
-	startTailscaleRelayProxy,
-	staticAuthKey,
-	type TailscaleRelayConfig,
-	type TailscaleStarter,
-} from "@nostr-agx/tailscale";
 import type { Profile } from "../config.js";
 import { configError } from "../errors.js";
 import { agxHome, ensureDir } from "../paths.js";
@@ -18,6 +8,11 @@ import { runtime } from "../runtime.js";
 import { rememberSecret } from "../secrets.js";
 import { asCliError, type TailscaleOAuthOptions } from "./auth.js";
 import { loadTailscaleSecret } from "./credentials.js";
+import {
+	loadTailscaleSdk,
+	type TailscaleRelayConfig,
+	type TailscaleStarter,
+} from "./sdk.js";
 
 export {
 	DEFAULT_TAILSCALE_OAUTH_TAGS,
@@ -27,12 +22,29 @@ export {
 	type ResolvedAuthKey,
 	type TailscaleOAuthOptions,
 } from "./auth.js";
+export { setTailscaleSdkLoaderForTests } from "./sdk.js";
 export {
 	forgetTailscaleSecret,
 	loadTailscaleSecret,
 	saveTailscaleSecret,
 	type TailscaleSecret,
 } from "./credentials.js";
+
+/** Proxy URLs now carry per-run SOCKS credentials. Never print the raw URL:
+ * it is a bearer credential for this node's tailnet identity. */
+export function displayTailscaleProxyUrl(url: string): string {
+	try {
+		const parsed = new URL(url);
+		if (!parsed.username && !parsed.password) {
+			return url;
+		}
+		parsed.username = "redacted";
+		parsed.password = "";
+		return parsed.toString();
+	} catch {
+		return "[redacted proxy URL]";
+	}
+}
 
 /** Whether a command should use the profile's Tailscale integration. */
 export function tailscaleRequested(
@@ -106,11 +118,12 @@ function envValue(name: string): string | null {
  * remembered for output redaction. Nothing here starts a node or makes a
  * network call — the SDK only resolves the provider when a proxy is created.
  */
-export function tailscaleConfigForProfile(
+export async function tailscaleConfigForProfile(
 	profileName: string,
 	profile: Profile,
 	options: TailscaleUseOptions = {},
-): TailscaleRelayConfig {
+): Promise<TailscaleRelayConfig> {
+	const sdk = await loadTailscaleSdk();
 	const secret = loadTailscaleSecret(profileName);
 	const oauth =
 		profile.tailscale.authMode === "oauth" ? oauthFor(profileName, profile) : null;
@@ -118,19 +131,21 @@ export function tailscaleConfigForProfile(
 	const storedKey =
 		!explicit && profile.tailscale.authMode === "key" ? secret.authKey : null;
 
-	const provider = firstAuthKey(
-		explicit ? staticAuthKey(explicit) : null,
-		environmentAuthKey({ names: ["AGX_TAILSCALE_AUTH_KEY", "TS_AUTHKEY"] }),
-		storedKey ? staticAuthKey(storedKey) : null,
+	const provider = sdk.firstAuthKey(
+		explicit ? sdk.staticAuthKey(explicit) : null,
+		sdk.environmentAuthKey({
+			names: ["AGX_TAILSCALE_AUTH_KEY", "TS_AUTHKEY"],
+		}),
+		storedKey ? sdk.staticAuthKey(storedKey) : null,
 		oauth
-			? sdkOauthAuthKey({
+			? sdk.oauthAuthKey({
 					...oauth,
 					scope: oauth.scope ?? undefined,
 					fetch: runtime().fetch,
 				})
 			: null,
 	);
-	const keyProvider = customAuthKey(async () => {
+	const keyProvider = sdk.customAuthKey(async () => {
 		const key = await provider.resolve();
 		if (key) {
 			rememberSecret(key);
@@ -157,7 +172,7 @@ export async function startTailscaleForProfile(
 	profile: Profile,
 	options: TailscaleUseOptions = {},
 ): Promise<RelayProxyHandle> {
-	const config = tailscaleConfigForProfile(profileName, profile, options);
+	const config = await tailscaleConfigForProfile(profileName, profile, options);
 	// An explicit state dir is the operator asking to reuse a node. Otherwise
 	// give this run its own and delete it when the node is stopped.
 	const runStateDir = config.stateDir ? undefined : createRunStateDir();
@@ -165,6 +180,7 @@ export async function startTailscaleForProfile(
 		config.stateDir = runStateDir;
 	}
 	try {
+		const { startTailscaleRelayProxy } = await loadTailscaleSdk();
 		const proxy = await startTailscaleRelayProxy(config);
 		if (!runStateDir) {
 			return proxy;
