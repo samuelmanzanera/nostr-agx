@@ -10,7 +10,7 @@ import {
 } from "./index.js";
 
 const KEY = "tskey-auth-k1234567890CNTRL-abcdefghijklmnop";
-const PROXY_URL = "socks5h://127.0.0.1:49153";
+const PROXY_URL = "socks5h://agx:secret@127.0.0.1:49153";
 
 let box: ReturnType<typeof sandbox>;
 let restoreStarter: (() => void) | null = null;

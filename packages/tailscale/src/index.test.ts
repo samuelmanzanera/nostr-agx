@@ -8,7 +8,7 @@ import {
 } from "./index";
 
 const KEY = "tskey-auth-abcdefgh";
-const PROXY_URL = "socks5://127.0.0.1:45678";
+const PROXY_URL = "socks5://agx:secret@127.0.0.1:45678";
 
 class FakeWs {}
 

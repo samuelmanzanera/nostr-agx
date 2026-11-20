@@ -6,12 +6,15 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -116,7 +119,18 @@ func run() error {
 		return fmt.Errorf("listen on %s: %w", *listen, err)
 	}
 	defer ln.Close()
-	fmt.Printf("socks5://%s\n", ln.Addr())
+	// The proxy accepts connections only from loopback, but any local process
+	// could otherwise use this node's tailnet identity. Require per-run random
+	// credentials, delivered only on stdout to the parent that started us.
+	username, err := randomCredential()
+	if err != nil {
+		return err
+	}
+	password, err := randomCredential()
+	if err != nil {
+		return err
+	}
+	fmt.Println(socksProxyURL(ln.Addr().String(), username, password))
 
 	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, _, err := net.SplitHostPort(address)
@@ -128,7 +142,9 @@ func run() error {
 	}
 
 	proxy := &socks5.Server{
-		Dialer: dial,
+		Dialer:   dial,
+		Username: username,
+		Password: password,
 		Logf: func(format string, args ...any) {
 			log.Printf("socks5: "+format, args...)
 		},
@@ -228,4 +244,22 @@ func firstNonEmpty(values ...string) string {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+// randomCredential returns a URL-safe 24-character value (18 random bytes),
+// comfortably below the SOCKS5 username/password field's 255-byte limit.
+func randomCredential() (string, error) {
+	buf := make([]byte, 18)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("generate SOCKS5 credential: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func socksProxyURL(addr, username, password string) string {
+	return (&url.URL{
+		Scheme: "socks5",
+		User:   url.UserPassword(username, password),
+		Host:   addr,
+	}).String()
 }

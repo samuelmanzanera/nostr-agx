@@ -148,6 +148,12 @@ export async function startBundledTailscale(
 		child.kill();
 		throw new Error(`The bundled launcher reported an invalid SOCKS5 address: ${url}`);
 	}
+	if (!parsed.username || !parsed.password) {
+		child.kill();
+		throw new Error(
+			"The bundled launcher reported an unauthenticated SOCKS5 proxy; refusing to use a proxy that any local process could join.",
+		);
+	}
 
 	let stopping: Promise<void> | undefined;
 	return {

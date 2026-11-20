@@ -9,7 +9,7 @@ import { agx, jsonDocuments, sandbox } from "../test/helpers.js";
 
 const KEY = "tskey-auth-k1234567890CNTRL-abcdefghijklmnop";
 const CLIENT_SECRET = "oauth-client-secret-value";
-const PROXY_URL = "socks5h://127.0.0.1:49152";
+const PROXY_URL = "socks5h://agx:secret@127.0.0.1:49152";
 
 interface StartedCall {
 	options: TailscaleStartOptions;

@@ -38,7 +38,11 @@ interface SocksProxy {
 	close(): Promise<void>;
 }
 
-/** A minimal SOCKS5 CONNECT proxy: enough for `ws` to reach the local relay. */
+const SOCKS_USER = "agx";
+const SOCKS_PASS = "e2e-secret";
+
+/** A minimal authenticated SOCKS5 CONNECT proxy: enough for `ws` to reach the
+ * local relay, and strict enough to prove the CLI sends the URL credentials. */
 async function startSocksProxy(): Promise<SocksProxy> {
 	const sockets = new Set<Socket>();
 	const server = createServer((socket) => {
@@ -47,6 +51,7 @@ async function startSocksProxy(): Promise<SocksProxy> {
 		socket.on("error", () => socket.destroy());
 		let buffer = Buffer.alloc(0);
 		let greeted = false;
+		let authenticated = false;
 		let connected = false;
 		socket.on("data", (chunk: Buffer | string) => {
 			buffer = Buffer.concat([
@@ -57,9 +62,34 @@ async function startSocksProxy(): Promise<SocksProxy> {
 				if (buffer.length < 2) return;
 				const methods = buffer[1]!;
 				if (buffer.length < 2 + methods) return;
+				const offered = [...buffer.subarray(2, 2 + methods)];
 				buffer = buffer.subarray(2 + methods);
-				socket.write(Buffer.from([0x05, 0x00]));
+				if (!offered.includes(0x02)) {
+					socket.write(Buffer.from([0x05, 0xff]));
+					socket.destroy();
+					return;
+				}
+				socket.write(Buffer.from([0x05, 0x02]));
 				greeted = true;
+			}
+			if (!authenticated) {
+				if (buffer.length < 2) return;
+				const userLength = buffer[1]!;
+				if (buffer.length < 3 + userLength) return;
+				const passLength = buffer[2 + userLength]!;
+				if (buffer.length < 3 + userLength + passLength) return;
+				const user = buffer.subarray(2, 2 + userLength).toString("utf8");
+				const pass = buffer
+					.subarray(3 + userLength, 3 + userLength + passLength)
+					.toString("utf8");
+				buffer = buffer.subarray(3 + userLength + passLength);
+				if (user !== SOCKS_USER || pass !== SOCKS_PASS) {
+					socket.write(Buffer.from([0x01, 0x01]));
+					socket.destroy();
+					return;
+				}
+				socket.write(Buffer.from([0x01, 0x00]));
+				authenticated = true;
 			}
 			if (connected || buffer.length < 5) return;
 			const atyp = buffer[3];
@@ -158,7 +188,7 @@ describe.skipIf(!posix)("agx send through Tailscale (built CLI)", () => {
 		// does not understand; the shell wrapper ignores them.
 		writeFileSync(
 			launcher,
-			`#!/bin/sh\nprintf '%s\\n' "$@" > "$STATE_ARGS"\necho socks5://127.0.0.1:${socks.port}\nexec cat >/dev/null\n`,
+			`#!/bin/sh\nprintf '%s\\n' "$@" > "$STATE_ARGS"\necho socks5://${SOCKS_USER}:${SOCKS_PASS}@127.0.0.1:${socks.port}\nexec cat >/dev/null\n`,
 			{ mode: 0o755 },
 		);
 		chmodSync(launcher, 0o755);

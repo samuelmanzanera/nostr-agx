@@ -32,6 +32,31 @@ func TestSplitTags(t *testing.T) {
 	}
 }
 
+func TestSocksProxyURL(t *testing.T) {
+	got := socksProxyURL("127.0.0.1:43210", "user-1", "p@ss/word")
+	want := "socks5://user-1:p%40ss%2Fword@127.0.0.1:43210"
+	if got != want {
+		t.Fatalf("socksProxyURL = %q, want %q", got, want)
+	}
+}
+
+func TestRandomCredential(t *testing.T) {
+	first, err := randomCredential()
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := randomCredential()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first) != 24 || len(second) != 24 {
+		t.Fatalf("credential lengths = %d, %d; want 24", len(first), len(second))
+	}
+	if first == second {
+		t.Fatal("two generated credentials are equal")
+	}
+}
+
 func TestStateDirectory(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "state")
 	got, err := stateDirectory(dir)

@@ -32,14 +32,14 @@ describe("bundledBinaryPath", () => {
 });
 
 describe("startBundledTailscale", () => {
-	it.skipIf(!posix)("starts a child and reports its SOCKS5 address", async () => {
+	it.skipIf(!posix)("starts a child and reports its authenticated SOCKS5 URL", async () => {
 		const fake = await fakeBinary(
-			"#!/bin/sh\necho socks5://127.0.0.1:43210\nexec cat >/dev/null\n",
+			"#!/bin/sh\necho socks5://agx:secret@127.0.0.1:43210\nexec cat >/dev/null\n",
 		);
 		const proxy = await startBundledTailscale({ binary: fake.path, timeoutMs: 5_000 });
 		try {
 			expect(proxy).toMatchObject({
-				url: "socks5://127.0.0.1:43210",
+				url: "socks5://agx:secret@127.0.0.1:43210",
 				address: "127.0.0.1:43210",
 				host: "127.0.0.1",
 				port: 43210,
@@ -56,7 +56,7 @@ describe("startBundledTailscale", () => {
 		const keyFile = join(dir, "key.txt");
 		const fake = await fakeBinary(
 			'#!/bin/sh\nprintf "%s" "$TS_AUTHKEY" > "$KEY_FILE"\n' +
-				"echo socks5://127.0.0.1:43211\nexec cat >/dev/null\n",
+				"echo socks5://agx:secret@127.0.0.1:43211\nexec cat >/dev/null\n",
 		);
 		const previous = process.env.KEY_FILE;
 		process.env.KEY_FILE = keyFile;
@@ -74,6 +74,19 @@ describe("startBundledTailscale", () => {
 			await proxy?.stop();
 			await rm(fake.dir, { recursive: true, force: true });
 			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it.skipIf(!posix)("rejects an unauthenticated SOCKS5 URL", async () => {
+		const fake = await fakeBinary(
+			"#!/bin/sh\necho socks5://127.0.0.1:43212\nexec cat >/dev/null\n",
+		);
+		try {
+			await expect(
+				startBundledTailscale({ binary: fake.path, timeoutMs: 5_000 }),
+			).rejects.toThrow(/unauthenticated SOCKS5/);
+		} finally {
+			await rm(fake.dir, { recursive: true, force: true });
 		}
 	});
 
