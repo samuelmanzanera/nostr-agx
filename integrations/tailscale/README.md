@@ -10,11 +10,10 @@ AGX stays on Nostr — Tailscale only supplies the network path. `@nostr-agx/nos
 dependency; its `relayProxy` hook and the optional `socks-proxy-agent` peer are opt-in. Nothing
 changes for hosts that do not use them.
 
-This is the **SDK integration** for applications that build their own transport.
-
-It requires a version of `@nostr-agx/nostr` that exposes the `relayProxy`
-transport option. Until that option is published, install a local build or a
-prerelease of `@nostr-agx/nostr` when developing this package.
+This is the **SDK integration** for applications that build their own transport. The AGX CLI uses
+the same package: `agx tailscale enable` opts a profile in to the bundled SOCKS5 proxy; see
+[Tailscale transport](../../docs/tailscale.md) and the
+[CLI guide](../../packages/cli/README.md#route-relay-websockets-over-tailscale-opt-in).
 
 ## Install
 
@@ -22,9 +21,9 @@ prerelease of `@nostr-agx/nostr` when developing this package.
 npm install @nostr-agx/nostr @nostr-agx/tailscale socks-proxy-agent
 ```
 
-`@nostr-agx/tailscale` is an optional integration for `@nostr-agx/nostr`: installing the
-transport alone does not pull in the bundled binaries. Install both packages, plus
-`socks-proxy-agent`, when you want this path.
+`@nostr-agx/tailscale` is an optional peer of `@nostr-agx/cli`: installing the CLI alone does not
+pull in the bundled binaries. Install all three packages when you want a custom SDK integration;
+for the CLI, install `@nostr-agx/cli` and `@nostr-agx/tailscale` together.
 
 The native launcher for the host platform ships inside the package under `bin/<platform>/`. Set
 `AGX_TAILSCALE_BINARY` to use your own build instead; `startBundledTailscale()` and
@@ -129,7 +128,7 @@ you pass override it. The tag must already exist in tailnet policy and be allowe
 The node still needs a tailnet ACL grant from `tag:agx-agent` to the relay. If the relay is a
 Tailscale Service, add `svc:…` (or the Service's tag) to the grant's `dst`; `autoApprovers.services`
 only approves Service hosts and does not grant access. See
-[Tailnet ACLs for agent nodes](docs/tailscale.md#tailnet-acls-for-agent-nodes).
+[Tailnet ACLs for agent nodes](../../docs/tailscale.md#tailnet-acls-for-agent-nodes).
 
 > Use the OAuth client to mint keys, not as the auth key itself. The client secret is a provisioning
 > authority; an auth key is a single enrollment.

@@ -23,7 +23,7 @@ import { type RunningRelay, startRelay } from "../relay/server.js";
  * relay and a fake launcher behind a local SOCKS5 proxy.
  */
 const AGX = fileURLToPath(new URL("../../dist/agx.js", import.meta.url));
-const SDK = fileURLToPath(new URL("../../../tailscale/dist/index.js", import.meta.url));
+const SDK = fileURLToPath(new URL("../../../../integrations/tailscale/dist/index.js", import.meta.url));
 const posix = process.platform !== "win32";
 const KEY = "tskey-auth-test-value-not-a-real-key";
 

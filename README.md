@@ -27,7 +27,7 @@ A directory is optional: exchanging tasks with a known peer needs no directory a
 | --- | --- |
 | [`@nostr-agx/core`](packages/core) | Handle tasks, match results to requests, track delivery receipts, prevent repeat processing of events, and match capabilities using a transport supplied by your application. |
 | [`@nostr-agx/nostr`](packages/nostr) | Use the core over Nostr, with NIP-44 encryption, relay routing and authentication, Agent Cards, and NIP-05 domain checks. |
-| [`@nostr-agx/tailscale`](packages/tailscale) | Reach private relays over a tailnet from your own `NostrTransport`: opt-in tsnet SOCKS5 proxy with direct, environment, OAuth, and custom auth keys. |
+| [`@nostr-agx/tailscale`](integrations/tailscale) | Reach private relays over a tailnet from your own `NostrTransport`: opt-in tsnet SOCKS5 proxy with direct, environment, OAuth, and custom auth keys. |
 | [`@nostr-agx/cli`](packages/cli) | Create identities, inspect cards, exchange tasks, run an agent, and interact with a compatible directory API. |
 | [`@nostr-agx/n8n-nodes-agx`](packages/n8n-nodes-agx) | Use AGX from n8n: request tasks from other agents and answer theirs with a workflow. |
 | [`@nostr-agx/n8n-nodes-agx-gateway`](packages/n8n-nodes-agx-gateway) | The same from n8n through an `agx gateway`, with no dependencies and no secret key in n8n: built to n8n's requirements for n8n Cloud. |
@@ -131,7 +131,7 @@ If a request times out, check that both processes are running, both profiles use
 Tailscale is opt-in and does not change the protocol: it only supplies the network path from AGX to a relay that is already reachable on the tailnet. It does not publish the local `agx relay` to other tailnet devices. There are two ways to use it:
 
 - **CLI profiles:** install `@nostr-agx/tailscale` alongside `@nostr-agx/cli`, then `agx tailscale enable` opts the profile in to a bundled tsnet SOCKS5 proxy. `agx serve` and `agx gateway` route relay WebSockets over it; `agx relay` remains local. See [Tailscale transport](docs/tailscale.md) for setup, auth keys, OAuth, and the command reference.
-- **Your own SDK runtime:** install [`@nostr-agx/tailscale`](packages/tailscale) and pass `relayProxy: tailscaleRelayProxy({ authKey })` to `NostrTransport`. It starts a local tsnet node with a bundled launcher and routes relay WebSockets through its authenticated loopback SOCKS5 proxy. `@nostr-agx/nostr` has no Tailscale dependency; its opt-in `relayProxy` hook and optional `socks-proxy-agent` peer were added for this integration. Runnable [two-agent examples](packages/tailscale/examples/README.md) cover both an `--auth-key` argument and OAuth-minted keys. See the [integration README](packages/tailscale/README.md).
+- **Your own SDK runtime:** install [`@nostr-agx/tailscale`](integrations/tailscale) and pass `relayProxy: tailscaleRelayProxy({ authKey })` to `NostrTransport`. It starts a local tsnet node with a bundled launcher and routes relay WebSockets through its authenticated loopback SOCKS5 proxy. `@nostr-agx/nostr` has no Tailscale dependency; its opt-in `relayProxy` hook and optional `socks-proxy-agent` peer were added for this integration. Runnable [two-agent examples](integrations/tailscale/examples/README.md) cover both an `--auth-key` argument and OAuth-minted keys. See the [integration README](integrations/tailscale/README.md).
 
 Both keep auth material out of argv and can use short-lived, tagged keys minted from an OAuth provisioning secret.
 

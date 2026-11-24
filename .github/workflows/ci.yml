@@ -26,13 +26,13 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v5
         with:
-          go-version-file: packages/tailscale/launcher/go.mod
-          cache-dependency-path: packages/tailscale/launcher/go.sum
+          go-version-file: integrations/tailscale/launcher/go.mod
+          cache-dependency-path: integrations/tailscale/launcher/go.sum
       - run: pnpm install --frozen-lockfile
       # bin/ is not checked in, so build the launchers the tests and
       # check-packages need from the Go source pinned in go.mod.
       - name: Stage bundled Tailscale launchers
-        run: make -C packages/tailscale/launcher stage
+        run: make -C integrations/tailscale/launcher stage
       - run: pnpm build
       - run: pnpm type-check
       - run: pnpm test

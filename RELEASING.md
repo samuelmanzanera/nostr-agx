@@ -9,7 +9,7 @@ Releases are published by GitHub Actions ([`publish.yml`](.github/workflows/publ
 provenance, which n8n requires of community nodes and which records the commit each package was
 built from.
 
-1. Bump `version` in `packages/core`, `packages/nostr`, `packages/tailscale`, `packages/cli`,
+1. Bump `version` in `packages/core`, `packages/nostr`, `integrations/tailscale`, `packages/cli`,
    `packages/n8n-nodes-agx` and `packages/n8n-nodes-agx-gateway` `package.json`, plus
    `AGX_CORE_VERSION` (`packages/core/src/index.ts`), `AGX_NOSTR_VERSION`
    (`packages/nostr/src/index.ts`) and `AGX_CLI_VERSION` (`packages/cli/src/lib/version.ts`; `version.test.ts` fails if it
@@ -25,9 +25,9 @@ built from.
    node scripts/publish-packages.mjs v<version> --dry-run
    ```
 
-   The Tailscale package ships prebuilt launcher binaries in `packages/tailscale/bin/`. That
+   The Tailscale package ships prebuilt launcher binaries in `integrations/tailscale/bin/`. That
    directory is generated and is not checked in; if the Go source in
-   `packages/tailscale/launcher/` changed, refresh it with
+   `integrations/tailscale/launcher/` changed, refresh it with
    `pnpm --filter @nostr-agx/tailscale build:launcher` (Go 1.27+) and let the release workflow stage
    the binaries for packaging. Do not commit generated launcher binaries.
 

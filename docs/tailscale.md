@@ -26,7 +26,7 @@ The CLI and the SDK use the same package:
 - **CLI:** `agx tailscale …` stores the opt-in and credentials, then `agx serve`
   and `agx gateway` start the SDK proxy automatically. `agx relay` always serves
   locally and does not start a Tailscale node.
-- **SDK:** [`@nostr-agx/tailscale`](../packages/tailscale/README.md) starts the
+- **SDK:** [`@nostr-agx/tailscale`](../integrations/tailscale/README.md) starts the
   node programmatically for an application that creates its own transport.
 
 `@nostr-agx/nostr` has no Tailscale dependency. Its opt-in `relayProxy` transport
@@ -62,7 +62,7 @@ const transport = await NostrTransport.create({
 provider mints a short-lived, tagged, one-off key from a provisioning secret;
 the secret is never handed to the agent. `startTailscaleRelayProxy()` returns a
 `{ url, stop() }` handle when your code owns the node's lifecycle. See the
-[package README](../packages/tailscale/README.md) for the full API.
+[package README](../integrations/tailscale/README.md) for the full API.
 
 ## Prerequisites
 

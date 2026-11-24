@@ -23,14 +23,15 @@ import { join, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 /** `nostr` depends on `core`; `tailscale` builds on `nostr`; the
  * CLI and the n8n nodes bundle the first two. The gateway nodes depend on
- * nothing, but release with the CLI that serves them. */
+ * nothing, but release with the CLI that serves them. Paths are relative to
+ * the repo root; the Tailscale SDK lives under `integrations/`. */
 const ORDER = [
-	"core",
-	"nostr",
-	"tailscale",
-	"cli",
-	"n8n-nodes-agx",
-	"n8n-nodes-agx-gateway",
+	"packages/core",
+	"packages/nostr",
+	"integrations/tailscale",
+	"packages/cli",
+	"packages/n8n-nodes-agx",
+	"packages/n8n-nodes-agx-gateway",
 ];
 
 const args = process.argv.slice(2);
@@ -44,7 +45,7 @@ const version = tag.replace(/^v/, "");
 
 const packages = ORDER.map((dir) => {
 	const manifest = JSON.parse(
-		readFileSync(join(root, "packages", dir, "package.json"), "utf8"),
+		readFileSync(join(root, dir, "package.json"), "utf8"),
 	);
 	return { dir, name: manifest.name, version: manifest.version };
 });
@@ -83,7 +84,7 @@ try {
 		}
 		const before = new Set(readdirSync(out));
 		run("pnpm", ["pack", "--pack-destination", out], {
-			cwd: join(root, "packages", pkg.dir),
+			cwd: join(root, pkg.dir),
 		});
 		const tarball = readdirSync(out).find((file) => !before.has(file));
 		if (!tarball) {

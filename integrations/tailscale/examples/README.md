@@ -78,7 +78,7 @@ an access token that is exchanged through its API.
 ## Local dummy OAuth endpoint (real Tailscale API token)
 
 `dummy-oauth-server.ts` is a loopback-only HTTP server for exercising the OAuth path without giving
-the client process an OAuth secret from Tailscale. It validates an OAuth client-credentials request and
+the AGX process an OAuth secret from Tailscale. It validates an OAuth client-credentials request and
 then uses a **real Tailscale API access token** (read from the environment, never passed to the
 client) to mint a one-off auth key through the real API. The access token needs the `auth_keys`
 scope and permission to use the tags in `DUMMY_OAUTH_TAGS`. The tags are defined by the server; the
@@ -97,7 +97,7 @@ Environment for the server:
 | `TAILSCALE_API_ACCESS_TOKEN` | Required. Real API token with `auth_keys` scope; stays in this process. |
 | `TAILSCALE_API_BASE_URL` | API base (default `https://api.tailscale.com/api/v2`). |
 | `DUMMY_OAUTH_CLIENT_ID`, `DUMMY_OAUTH_CLIENT_SECRET` | Client credentials. Generated and printed once if unset. |
-| `DUMMY_OAUTH_PORT` | Listen port (default `8788`, loopback only). |
+| `DUMMY_OAUTH_PORT` | Listen port (default `8788`, loopback only; chosen to avoid the CLI gateway's default). |
 | `DUMMY_OAUTH_TAGS` | Comma-separated ACL tags the server puts on the minted key (default `tag:agx-agent`). Client-supplied tags are ignored. |
 | `DUMMY_OAUTH_TAILNET` | Tailnet for the key, or `-` (default). |
 | `DUMMY_OAUTH_EXPIRY_SECONDS` | Key lifetime (default `3600`). |
@@ -130,7 +130,7 @@ persistence, no refresh tokens, no consent — and is not intended for productio
 If the relay is published as a Tailscale Service, the `tag:agx-agent` node also needs a grant whose
 `dst` includes `svc:…` (or the Service's own tag). `autoApprovers.services` alone only approves the
 Service hosts; it does not allow the agent to connect. See
-[Tailnet ACLs for agent nodes](../docs/tailscale.md#tailnet-acls-for-agent-nodes).
+[Tailnet ACLs for agent nodes](../../../docs/tailscale.md#tailnet-acls-for-agent-nodes).
 
 ## What both examples do
 
